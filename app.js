@@ -1,4 +1,6 @@
-// Функцияларды ғаламдық (global) етіп жариялаймыз
+// --- РӨЛДЕР МЕН АВТОРИЗАЦИЯ ---
+window.currentRole = 'student';
+
 window.selectRole = function(role) {
   window.currentRole = role;
   const studentBtn = document.getElementById('roleStudentBtn');
@@ -49,11 +51,8 @@ window.switchView = function(viewName) {
   });
 
   const targetView = document.getElementById(viewName + 'View');
-  if (targetView) {
-    targetView.classList.remove('hidden');
-  }
+  if (targetView) targetView.classList.remove('hidden');
 
-  // Навигация батырмаларының түстерін жаңарту
   const tabs = {
     student: 'navStudentTab',
     cards: 'navCardsTab',
@@ -74,6 +73,76 @@ window.switchView = function(viewName) {
   });
 };
 
+// --- СУРЕТ ЖҮКТЕУ ЖӘНЕ КЕМЕРА ---
+window.handleImageUpload = function(event) {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const preview = document.getElementById('imagePreview');
+      const container = document.getElementById('imagePreviewContainer');
+      const input = document.getElementById('studentInput');
+      
+      if (preview) preview.src = e.target.result;
+      if (container) container.classList.remove('hidden');
+      if (input) input.value = "В лесу слышался тихий шопот листьев и пение птиц.";
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
+window.removeUploadedImage = function() {
+  const container = document.getElementById('imagePreviewContainer');
+  if (container) container.classList.add('hidden');
+  const fileInput = document.getElementById('imageFileInput');
+  if (fileInput) fileInput.value = '';
+};
+
+// --- ДЫБЫСТАУ (AUDIO & SPEECH SYNTHESIS) ---
+const wordList = [
+  { word: "Что", sound: "[што]", hint: "Пишется Ч, но произносится как Ш. Запомни это правило!" },
+  { word: "Чтобы", sound: "[штобы]", hint: "Пишется слитно, если можно заменить на 'для того чтобы'." },
+  { word: "Конечно", sound: "[конешна]", hint: "Сочетание ЧН произносится как ШН." },
+  { word: "Скучно", sound: "[скушна]", hint: "Сочетание ЧН произносится как ШН." },
+  { word: "Шорох", sound: "[шорох]", hint: "Слово-исключение! Пишется О после шипящих в корне." }
+];
+let currentWordIndex = 0;
+
+window.speakWord = function(text) {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel(); // Бұрынғы дыбысты тоқтату
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'ru-RU'; // Орысша айту
+    utterance.rate = 0.85; // Түсінікті әрі асықпай айту
+    window.speechSynthesis.speak(utterance);
+  } else {
+    alert("Сіздің браузеріңізде дыбыстау функциясы қолдау таппайды.");
+  }
+};
+
+window.repeatCurrentWord = function() {
+  const current = wordList[currentWordIndex];
+  if (current) {
+    window.speakWord(current.word);
+  }
+};
+
+window.playNextWord = function() {
+  currentWordIndex = (currentWordIndex + 1) % wordList.length;
+  const item = wordList[currentWordIndex];
+  
+  const title = document.getElementById('playerWordTitle');
+  const sound = document.getElementById('playerWordSound');
+  const hint = document.getElementById('playerWordHint');
+
+  if (title) title.textContent = item.word;
+  if (sound) sound.textContent = `Произносим: ${item.sound}`;
+  if (hint) hint.textContent = item.hint;
+
+  window.speakWord(item.word);
+};
+
+// --- ДИКТАНТ ТЕКСЕРУ ---
 window.checkText = function() {
   const studentInput = document.getElementById('studentInput');
   const text = studentInput ? studentInput.value : '';
@@ -118,27 +187,4 @@ window.checkText = function() {
     if (focusPointBox) focusPointBox.classList.remove('hidden');
     if (focusPointText) focusPointText.textContent = "Правописание гласных О/Ё после шипящих в корне слова.";
   }, 1000);
-};
-
-// Сурет жүктеу функциясы
-window.handleImageUpload = function(event) {
-  const file = event.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const preview = document.getElementById('imagePreview');
-      const container = document.getElementById('imagePreviewContainer');
-      const input = document.getElementById('studentInput');
-      
-      if (preview) preview.src = e.target.result;
-      if (container) container.classList.remove('hidden');
-      if (input) input.value = "В лесу слышался тихий шопот листьев и пение птиц.";
-    };
-    reader.readAsDataURL(file);
-  }
-};
-
-window.removeUploadedImage = function() {
-  const container = document.getElementById('imagePreviewContainer');
-  if (container) container.classList.add('hidden');
 };
